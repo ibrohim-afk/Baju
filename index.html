@@ -370,7 +370,7 @@
 <!-- ─────────────────────────────────────────────── -->
 <script type="module">
 
-  import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+  import * as THREE        from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
   import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/controls/OrbitControls.js';
   import { GLTFLoader }    from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/loaders/GLTFLoader.js';
 
@@ -421,38 +421,71 @@
      Jika dijalankan lokal, pastikan ada web server
      (Live Server / python -m http.server).
   ════════════════════════════════════════════════ */
+  /* ── Fungsi setup model (dipanggil setelah load berhasil) ── */
+  function setupModel(gltf) {
+    if (bajuModel) scene.remove(bajuModel);   // hapus model lama jika ada
+    bajuModel = gltf.scene;
+    scene.add(bajuModel);
+
+    // Auto center & scale
+    const box    = new THREE.Box3().setFromObject(bajuModel);
+    const size   = box.getSize(new THREE.Vector3()).length();
+    const center = box.getCenter(new THREE.Vector3());
+    bajuModel.position.sub(center);
+    bajuModel.scale.setScalar(2 / size);
+
+    // Simpan texture asli setiap mesh untuk reset
+    origMaps.clear();
+    bajuModel.traverse((child) => {
+      if (child.isMesh && child.material) {
+        origMaps.set(child.uuid, child.material.map || null);
+      }
+    });
+
+    document.getElementById('loading').classList.add('hidden');
+    showStatus('✓ Model berhasil dimuat');
+  }
+
+  /* ── Load otomatis, fallback ke upload manual jika gagal ── */
   const loader = new GLTFLoader();
   loader.load(
-    'oversized_t-shirt__1_.glb',       // ← ganti path sesuai lokasi file kamu
-    (gltf) => {
-      bajuModel = gltf.scene;
-      scene.add(bajuModel);
-
-      // Auto center & scale
-      const box  = new THREE.Box3().setFromObject(bajuModel);
-      const size = box.getSize(new THREE.Vector3()).length();
-      const center = box.getCenter(new THREE.Vector3());
-      bajuModel.position.sub(center);
-      bajuModel.scale.setScalar(2 / size);
-
-      // Simpan texture asli setiap mesh untuk reset
-      bajuModel.traverse((child) => {
-        if (child.isMesh && child.material) {
-          origMaps.set(child.uuid, child.material.map || null);
-        }
-      });
-
-      // Sembunyikan loading overlay
-      document.getElementById('loading').classList.add('hidden');
-      showStatus('✓ Model berhasil dimuat');
-    },
-    (xhr) => {
-      // progress (opsional)
-    },
+    'oversized_t-shirt(1).glb',
+    setupModel,
+    undefined,
     (err) => {
-      document.getElementById('loading').querySelector('p').textContent =
-        '⚠️ Gagal memuat model. Pastikan file .glb ada di folder yang sama.';
-      console.error(err);
+      // Gagal load otomatis → tampilkan tombol upload manual
+      const loadEl = document.getElementById('loading');
+      loadEl.innerHTML = `
+        <div style="text-align:center;padding:20px;max-width:300px">
+          <p style="color:#ff6b35;font-size:14px;margin-bottom:12px">
+            ⚠️ File .glb tidak terbaca otomatis
+          </p>
+          <p style="color:#6b6b7a;font-size:12px;margin-bottom:20px;line-height:1.6">
+            Cek apakah nama file di GitHub persis:<br>
+            <code style="color:#e8ff47">oversized_t-shirt__1_.glb</code>
+            <br><br>Atau upload langsung dari perangkat kamu:
+          </p>
+          <label style="
+            display:inline-block;cursor:pointer;
+            background:#e8ff47;color:#0d0d0f;
+            padding:10px 20px;border-radius:8px;
+            font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px
+          ">
+            📂 Upload file .glb
+            <input type="file" id="uploadGLB" accept=".glb,.gltf" style="display:none" />
+          </label>
+        </div>`;
+
+      document.getElementById('uploadGLB').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        loadEl.innerHTML = '<div class="spinner"></div><p>Memuat model...</p>';
+        loader.load(URL.createObjectURL(file), setupModel, undefined, (e2) => {
+          loadEl.querySelector('p').textContent = '❌ File tidak valid';
+          console.error(e2);
+        });
+      });
+      console.warn('Auto-load gagal:', err);
     }
   );
 
