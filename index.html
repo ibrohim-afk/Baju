@@ -67,11 +67,10 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
         // ========================================================
-        // KONFIGURASI URL MODEL GITHUB (VIA JSDELIVR CDN)
-        // PERINGATAN: Repositori 'ibrohim-afk/Baju' WAJIB di-set Publik.
-        // Jika privat, URL ini akan mengembalikan error 404/Failed to load.
+        // URL YANG DIREVISI: 
+        // Asumsi file telah di-rename menjadi 'baju.glb' dan repo sudah Publik.
         // ========================================================
-        const MODEL_URL = 'https://cdn.jsdelivr.net/gh/ibrohim-afk/Baju@main/oversized_t-shirt__1_.glb';
+        const MODEL_URL = 'https://cdn.jsdelivr.net/gh/ibrohim-afk/Baju@main/baju.glb';
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
@@ -133,9 +132,18 @@
                 }
             },
             (error) => {
-                console.error(error);
-                document.getElementById('loading-text').innerText = "Gagal memuat GLB dari GitHub.";
-                progressEl.innerText = "Periksa URL di variabel MODEL_URL dan pastikan repo bersifat Publik.";
+                console.error("DETAIL ERROR:", error);
+                const errorUI = document.getElementById('loading-text');
+                const progressUI = document.getElementById('loading-progress');
+                
+                errorUI.innerText = "Gagal memuat file 3D dari Server.";
+                errorUI.style.color = "red";
+                progressUI.innerHTML = `
+                    Kemungkinan penyebab:<br>
+                    1. Repo Github Anda masih Private.<br>
+                    2. Nama file di GitHub tidak persis 'baju.glb'.<br>
+                    Buka Console (F12) untuk melihat pesan error teknis.
+                `;
             }
         );
 
