@@ -67,10 +67,10 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
         // ========================================================
-        // URL RAW GITHUB (Hanya untuk Testing)
-        // PERINGATAN: Jika error terjadi, repo Anda MASIH PRIVATE.
+        // URL GITHUB VIA JSDELIVR CDN (WAJIB UNTUK VERCEL)
+        // Ini memecahkan masalah CORS dan MIME type dari raw Github
         // ========================================================
-        const MODEL_URL = 'https://raw.githubusercontent.com/ibrohim-afk/Baju/refs/heads/main/baju.glb';
+        const MODEL_URL = 'https://cdn.jsdelivr.net/gh/ibrohim-afk/Baju@main/baju.glb';
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
