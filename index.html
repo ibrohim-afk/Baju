@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D T-Shirt Customizer Architect</title>
+    <title>3D T-Shirt Customizer - Produksi</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { margin: 0; overflow: hidden; background-color: #1a1a1a; }
@@ -16,9 +16,23 @@
             background: rgba(20, 20, 20, 0.85);
             backdrop-filter: blur(10px);
             border: 1px solid #333;
+            max-height: 90vh;
+            overflow-y: auto;
         }
+        /* Loader Spinner */
+        .loader {
+            border: 3px solid #333;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
-    <!-- Konfigurasi Import Map untuk Three.js -->
     <script type="importmap">
         {
             "imports": {
@@ -32,16 +46,18 @@
 
     <!-- UI Controls -->
     <div class="ui-panel p-6 rounded-lg shadow-2xl max-w-sm">
-        <h2 class="text-xl font-bold mb-2 text-blue-400">Arsitektur Desain 3D</h2>
-        <p class="text-xs text-gray-400 mb-6">Upload gambar 2D (PNG/JPG) untuk mengganti tekstur pada objek 3D secara real-time.</p>
+        <h2 class="text-xl font-bold mb-2 text-blue-400">Customizer Baju 3D</h2>
+        <p class="text-xs text-gray-400 mb-6">Sistem memuat model secara otomatis dari server.</p>
         
-        <label class="block mb-2 text-sm font-medium text-gray-300" for="design-upload">Unggah Desain 2D</label>
-        <input class="block w-full text-sm text-gray-400 border border-gray-600 rounded-lg cursor-pointer bg-gray-800 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition-all" 
-               id="design-upload" type="file" accept="image/png, image/jpeg">
+        <label class="block mb-2 text-sm font-medium text-gray-300" for="design-upload">Unggah Desain (Grafik 2D)</label>
+        <input class="block w-full text-sm text-gray-400 border border-gray-600 rounded-lg cursor-pointer bg-gray-800 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed" 
+               id="design-upload" type="file" accept="image/png, image/jpeg" disabled>
         
-        <div class="mt-6 p-4 bg-green-900/30 rounded border border-green-800">
-            <h3 class="text-xs font-bold text-green-400 mb-1">Status: Model Terhubung</h3>
-            <p class="text-[10px] text-gray-300">File "oversized_t-shirt" berhasil dimuat menggunakan GLTFLoader. Silakan unggah gambar untuk menerapkan tekstur.</p>
+        <div class="mt-6 p-4 bg-gray-800 rounded border border-gray-700" id="status-panel">
+            <h3 class="text-xs font-bold text-yellow-400 mb-1" id="status-title">
+                <div class="loader"></div> Mengunduh Aset 3D...
+            </h3>
+            <p class="text-[10px] text-gray-300" id="status-desc">Menunggu respon dari server GitHub.</p>
         </div>
     </div>
 
@@ -57,7 +73,6 @@
         // 1. Setup Dasar: Scene, Camera, Renderer
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a1a1a);
-        // Menambahkan fog untuk efek kedalaman visual
         scene.fog = new THREE.Fog(0x1a1a1a, 10, 50);
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
@@ -68,58 +83,85 @@
         renderer.setPixelRatio(window.devicePixelRatio);
         document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-        // 2. Setup Kontrol Rotasi (Mouse/Touch)
+        // 2. Setup Kontrol Rotasi
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
-        controls.minDistance = 5;
+        controls.minDistance = 2;
         controls.maxDistance = 25;
 
-        // 3. Setup Pencahayaan (Krusial untuk melihat tekstur dan bentuk)
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); // Cahaya dasar
+        // 3. Setup Pencahayaan (Kritis untuk menonjolkan tekstur normal map)
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
         scene.add(ambientLight);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1); // Cahaya utama
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
         dirLight.position.set(5, 10, 7.5);
         scene.add(dirLight);
 
-        // 4. Memuat Model GLTF Asli
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
+        fillLight.position.set(-5, 0, -5);
+        scene.add(fillLight);
+
+        // 4. Inisialisasi Model & UI Elements
         let tShirtModel = null;
         let tShirtMaterials = [];
-        const loader = new GLTFLoader();
+        
+        const designUploadInput = document.getElementById('design-upload');
+        const statusTitle = document.getElementById('status-title');
+        const statusDesc = document.getElementById('status-desc');
+        const statusPanel = document.getElementById('status-panel');
 
-        loader.load('oversized_t-shirt.zip/scene.gltf', function(gltf) {
+        // 5. Muat Model Langsung dari Server
+        const loader = new GLTFLoader();
+        
+        // HARAP PASTIKAN PATH INI SESUAI DENGAN STRUKTUR FOLDER GITHUB ANDA
+        const modelUrl = './model/scene.gltf';
+
+        loader.load(modelUrl, function(gltf) {
             tShirtModel = gltf.scene;
             
-            // Pusatkan model ke tengah layar
+            // Logika Penengahan & Skala Otomatis
             const box = new THREE.Box3().setFromObject(tShirtModel);
             const center = box.getCenter(new THREE.Vector3());
             const size = box.getSize(new THREE.Vector3());
-
             tShirtModel.position.sub(center); 
             
-            // Skalakan model secara dinamis agar pas di layar
             const maxDim = Math.max(size.x, size.y, size.z);
-            const scale = 12 / maxDim;
+            const scale = 10 / maxDim;
             tShirtModel.scale.set(scale, scale, scale);
 
-            // Ekstrak semua material dari model untuk diubah nanti
+            // Ekstrak Material
             tShirtModel.traverse((child) => {
                 if (child.isMesh) {
-                    tShirtMaterials.push(child.material);
+                    if (Array.isArray(child.material)) {
+                        tShirtMaterials.push(...child.material);
+                    } else {
+                        tShirtMaterials.push(child.material);
+                    }
                 }
             });
 
             scene.add(tShirtModel);
+
+            // Update UI ke status siap produksi
+            designUploadInput.disabled = false;
+            statusTitle.innerHTML = "Status: Online & Siap";
+            statusTitle.className = "text-xs font-bold text-green-400 mb-1";
+            statusPanel.className = "mt-6 p-4 bg-green-900/30 rounded border border-green-800";
+            statusDesc.textContent = "Mesin 3D aktif. Silakan pilih gambar lokal Anda untuk melapisi model.";
+
         }, undefined, function(error) {
-            console.error('Error memuat model:', error);
+            console.error('Network/Path Error memuat model:', error);
+            statusTitle.innerHTML = "Status: Gagal Memuat Model";
+            statusTitle.className = "text-xs font-bold text-red-400 mb-1";
+            statusPanel.className = "mt-6 p-4 bg-red-900/30 rounded border border-red-800";
+            statusDesc.innerHTML = "Cek Console Browser. Pastikan folder <code>/model/scene.gltf</code> beserta file .bin dan /textures ada di GitHub.";
         });
 
-        // 5. Logika Upload Gambar & Mapping Tekstur 2D ke 3D
-        const uploadInput = document.getElementById('design-upload');
+        // 6. Logika Mapping Tekstur 2D Lokal
         const textureLoader = new THREE.TextureLoader();
 
-        uploadInput.addEventListener('change', function(event) {
+        designUploadInput.addEventListener('change', function(event) {
             const file = event.target.files[0];
             if (!file || tShirtMaterials.length === 0) return;
 
@@ -127,13 +169,12 @@
             reader.onload = function(e) {
                 const imageSrc = e.target.result;
                 
-                // Muat gambar sebagai tekstur
                 textureLoader.load(imageSrc, function(texture) {
                     texture.colorSpace = THREE.SRGBColorSpace;
-                    texture.flipY = false; // Model GLTF memerlukan flipY false agar gambar tidak terbalik
+                    texture.flipY = false; // Mencegah tekstur terbalik di GLTF
                     
-                    // Terapkan tekstur baru ke semua material baju
                     tShirtMaterials.forEach(mat => {
+                        // Hanya timpa baseColorMap, biarkan normalMap/roughnessMap tetap agar kain terlihat realistis
                         mat.map = texture;
                         mat.needsUpdate = true;
                     });
@@ -142,7 +183,7 @@
             reader.readAsDataURL(file);
         });
 
-        // 6. Handle Resize Layar
+        // 7. Responsive Handle
         window.addEventListener('resize', onWindowResize, false);
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
@@ -150,20 +191,13 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // 7. Loop Animasi Utama
+        // 8. Animation Loop
         function animate() {
             requestAnimationFrame(animate);
             controls.update(); 
-            
-            // Rotasi model baju jika sudah dimuat
-            if (tShirtModel) {
-                tShirtModel.rotation.y += 0.002;
-            }
-            
             renderer.render(scene, camera);
         }
 
-        // Mulai animasi
         animate();
     </script>
 </body>
