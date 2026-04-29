@@ -1,600 +1,170 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Baju 3D Customizer</title>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet"/>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-
-:root{
-  --bg:#080810;
-  --panel:#0f0f1a;
-  --card:#171726;
-  --border:#252538;
-  --accent:#7c6dfa;
-  --accent2:#fa6d9f;
-  --glow:rgba(124,109,250,0.18);
-  --text:#eeeef5;
-  --muted:#5a5a78;
-  --radius:12px;
-}
-
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif}
-
-/* ── APP GRID ── */
-.app{display:grid;grid-template-columns:1fr 290px;height:100vh}
-
-/* ── CANVAS ── */
-#viewport{
-  position:relative;
-  background:radial-gradient(ellipse 80% 60% at 50% 30%,#12122a 0%,#080810 100%);
-}
-#viewport canvas{display:block;width:100%!important;height:100%!important}
-
-/* Grid lines bg effect */
-#viewport::before{
-  content:'';position:absolute;inset:0;
-  background-image:
-    linear-gradient(rgba(124,109,250,0.04) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(124,109,250,0.04) 1px,transparent 1px);
-  background-size:48px 48px;
-  pointer-events:none;z-index:0;
-}
-
-/* Loading */
-#loading{
-  position:absolute;inset:0;z-index:10;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
-  background:var(--bg);transition:opacity .5s ease;
-}
-#loading.gone{opacity:0;pointer-events:none}
-
-.ring{
-  width:52px;height:52px;border-radius:50%;
-  border:3px solid var(--border);
-  border-top-color:var(--accent);
-  animation:spin .8s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-#loading p{font-size:13px;color:var(--muted);letter-spacing:.06em}
-#loading small{font-size:11px;color:var(--border)}
-
-/* Error state inside loading */
-#loading.error .ring{display:none}
-#loading.error p{color:#fa6d6d}
-
-/* Hint */
-.hint{
-  position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
-  font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;
-  pointer-events:none;z-index:1;
-}
-
-/* ── SIDE PANEL ── */
-.panel{
-  background:var(--panel);
-  border-left:1px solid var(--border);
-  display:flex;flex-direction:column;
-  overflow-y:auto;overflow-x:hidden;
-}
-.panel::-webkit-scrollbar{width:3px}
-.panel::-webkit-scrollbar-thumb{background:var(--border)}
-
-/* Panel header */
-.panel-head{
-  padding:22px 20px 18px;
-  border-bottom:1px solid var(--border);
-  display:flex;flex-direction:column;gap:4px;
-}
-.panel-head h1{
-  font-family:'Rajdhani',sans-serif;
-  font-size:28px;font-weight:700;letter-spacing:.02em;
-  background:linear-gradient(135deg,#a89dff,#fa6d9f);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-  background-clip:text;
-}
-.panel-head p{font-size:11px;color:var(--muted)}
-
-/* Sections */
-.section{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:12px}
-
-.sec-label{
-  font-family:'Rajdhani',sans-serif;
-  font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--muted);
-  display:flex;align-items:center;gap:8px;
-}
-.sec-label::before{
-  content:'';width:3px;height:14px;border-radius:2px;
-  background:linear-gradient(180deg,var(--accent),var(--accent2));
-  flex-shrink:0;
-}
-
-/* ── UPLOAD GAMBAR ── */
-.upload-zone{
-  position:relative;cursor:pointer;
-  border:1.5px dashed var(--border);border-radius:var(--radius);
-  padding:18px;text-align:center;
-  display:flex;flex-direction:column;align-items:center;gap:8px;
-  transition:border-color .2s,background .2s;
-  background:transparent;
-}
-.upload-zone:hover,
-.upload-zone.drag{border-color:var(--accent);background:var(--glow)}
-.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-
-.upload-icon{
-  width:42px;height:42px;border-radius:10px;
-  background:rgba(124,109,250,.12);
-  display:flex;align-items:center;justify-content:center;font-size:20px;
-}
-.upload-zone strong{font-size:13px;font-weight:600;color:var(--text)}
-.upload-zone small{font-size:11px;color:var(--muted)}
-
-/* Preview thumbnail */
-.preview-box{
-  display:none;position:relative;border-radius:var(--radius);overflow:hidden;
-  border:1px solid var(--border);
-}
-.preview-box img{width:100%;height:96px;object-fit:cover;display:block}
-.preview-box .del{
-  position:absolute;top:6px;right:6px;
-  background:rgba(0,0,0,.75);border:none;color:#fff;
-  border-radius:6px;padding:3px 9px;font-size:11px;
-  font-family:'Nunito',sans-serif;cursor:pointer;
-  transition:background .2s;
-}
-.preview-box .del:hover{background:rgba(250,109,109,.85)}
-
-/* ── COLOR SECTION ── */
-/* Preset swatches */
-.swatches{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
-.sw{
-  aspect-ratio:1;border-radius:7px;cursor:pointer;
-  border:2px solid transparent;transition:transform .15s,border-color .15s;
-}
-.sw:hover{transform:scale(1.12)}
-.sw.active{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
-
-/* Custom color picker */
-.color-pick-row{
-  display:flex;align-items:center;gap:10px;
-  background:var(--card);border:1px solid var(--border);
-  border-radius:var(--radius);padding:9px 13px;cursor:pointer;
-  transition:border-color .2s;
-}
-.color-pick-row:hover{border-color:var(--accent)}
-.clr-dot{
-  width:28px;height:28px;border-radius:7px;
-  border:1px solid rgba(255,255,255,.08);flex-shrink:0;
-  background:#ffffff;transition:background .2s;
-}
-.color-pick-row span{font-size:12px;color:var(--muted);flex:1}
-.color-pick-row code{font-size:12px;font-family:monospace;color:var(--text)}
-#pilihWarna{display:none}
-
-/* ── RESET ── */
-.reset-btn{
-  margin:18px 20px;background:transparent;
-  border:1px solid var(--border);border-radius:var(--radius);
-  padding:11px;color:var(--muted);cursor:pointer;
-  font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;
-  letter-spacing:.08em;text-transform:uppercase;
-  transition:all .2s;
-}
-.reset-btn:hover{border-color:var(--accent2);color:var(--accent2)}
-
-/* ── TOAST ── */
-#toast{
-  position:fixed;bottom:22px;left:50%;
-  transform:translateX(-50%) translateY(60px);
-  background:var(--card);border:1px solid var(--border);
-  border-radius:20px;padding:9px 18px;
-  font-size:12px;font-weight:600;color:var(--text);
-  box-shadow:0 8px 32px #00000088;
-  transition:transform .3s cubic-bezier(.34,1.56,.64,1);
-  z-index:999;white-space:nowrap;pointer-events:none;
-}
-#toast.show{transform:translateX(-50%) translateY(0)}
-#toast.ok{border-color:rgba(124,109,250,.5);color:#a89dff}
-#toast.err{border-color:rgba(250,109,109,.4);color:#fa8080}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D T-Shirt Customizer Architect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #1a1a1a; }
+        #canvas-container { width: 100vw; height: 100vh; display: block; }
+        .ui-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(20, 20, 20, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid #333;
+        }
+    </style>
+    <!-- Konfigurasi Import Map untuk Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
 </head>
-<body>
+<body class="text-white font-sans">
 
-<div class="app">
-
-  <!-- ── VIEWPORT ── -->
-  <div id="viewport">
-    <div id="loading">
-      <div class="ring"></div>
-      <p>Memuat model baju...</p>
-      <small>Pastikan file .glb ada di folder yang sama</small>
-    </div>
-    <span class="hint">🖱 Drag putar · Scroll zoom · Klik kanan geser</span>
-  </div>
-
-  <!-- ── PANEL ── -->
-  <aside class="panel">
-
-    <div class="panel-head">
-      <h1>Baju 3D Studio</h1>
-      <p>Kustomisasi desain &amp; warna secara real-time</p>
+    <!-- UI Controls -->
+    <div class="ui-panel p-6 rounded-lg shadow-2xl max-w-sm">
+        <h2 class="text-xl font-bold mb-2 text-blue-400">Arsitektur Desain 3D</h2>
+        <p class="text-xs text-gray-400 mb-6">Upload gambar 2D (PNG/JPG) untuk mengganti tekstur pada objek 3D secara real-time.</p>
+        
+        <label class="block mb-2 text-sm font-medium text-gray-300" for="design-upload">Unggah Desain 2D</label>
+        <input class="block w-full text-sm text-gray-400 border border-gray-600 rounded-lg cursor-pointer bg-gray-800 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition-all" 
+               id="design-upload" type="file" accept="image/png, image/jpeg">
+        
+        <div class="mt-6 p-4 bg-green-900/30 rounded border border-green-800">
+            <h3 class="text-xs font-bold text-green-400 mb-1">Status: Model Terhubung</h3>
+            <p class="text-[10px] text-gray-300">File "oversized_t-shirt" berhasil dimuat menggunakan GLTFLoader. Silakan unggah gambar untuk menerapkan tekstur.</p>
+        </div>
     </div>
 
-    <!-- SECTION 1: UPLOAD GAMBAR DESAIN -->
-    <div class="section">
-      <div class="sec-label">Upload Desain / Motif</div>
+    <!-- 3D Canvas -->
+    <div id="canvas-container"></div>
 
-      <!-- ★ input file — di luar init(), level root HTML -->
-      <label class="upload-zone" id="uploadZone">
-        <input type="file" id="uploadDesain" accept="image/png,image/jpeg,image/webp,image/svg+xml"/>
-        <div class="upload-icon">🖼️</div>
-        <strong>Pilih gambar dari perangkat</strong>
-        <small>PNG · JPG · WEBP · SVG</small>
-      </label>
+    <!-- Logika Three.js -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-      <div class="preview-box" id="previewBox">
-        <img id="previewImg" src="" alt="preview"/>
-        <button class="del" id="hapusDesain">✕ Hapus</button>
-      </div>
-    </div>
+        // 1. Setup Dasar: Scene, Camera, Renderer
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a1a);
+        // Menambahkan fog untuk efek kedalaman visual
+        scene.fog = new THREE.Fog(0x1a1a1a, 10, 50);
 
-    <!-- SECTION 2: WARNA KAIN -->
-    <div class="section">
-      <div class="sec-label">Warna Kain</div>
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 0, 15);
 
-      <div class="swatches" id="swatchGrid"></div>
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-      <!-- ★ color input — di luar init(), level root HTML -->
-      <input type="color" id="pilihWarna" value="#ffffff"/>
-      <div class="color-pick-row" onclick="document.getElementById('pilihWarna').click()">
-        <div class="clr-dot" id="clrDot"></div>
-        <span>Warna bebas</span>
-        <code id="clrHex">#FFFFFF</code>
-        <span>🎨</span>
-      </div>
-    </div>
+        // 2. Setup Kontrol Rotasi (Mouse/Touch)
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 5;
+        controls.maxDistance = 25;
 
-    <button class="reset-btn" id="resetBtn">↺ Reset ke default</button>
+        // 3. Setup Pencahayaan (Krusial untuk melihat tekstur dan bentuk)
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6); // Cahaya dasar
+        scene.add(ambientLight);
 
-  </aside>
-</div>
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1); // Cahaya utama
+        dirLight.position.set(5, 10, 7.5);
+        scene.add(dirLight);
 
-<div id="toast"></div>
+        // 4. Memuat Model GLTF Asli
+        let tShirtModel = null;
+        let tShirtMaterials = [];
+        const loader = new GLTFLoader();
 
-<!-- ══════════════════════════════════════════════
-     THREE.JS — semua dari CDN yang SAMA (jsdelivr)
-     PENTING: jangan campur cdnjs + jsdelivr
-════════════════════════════════════════════════ -->
-<script type="module">
+        loader.load('oversized_t-shirt.zip/scene.gltf', function(gltf) {
+            tShirtModel = gltf.scene;
+            
+            // Pusatkan model ke tengah layar
+            const box = new THREE.Box3().setFromObject(tShirtModel);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
 
-/* ── Import semua dari satu sumber ── */
-import * as THREE        from 'https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/controls/OrbitControls.js';
-import { GLTFLoader }    from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/GLTFLoader.js';
+            tShirtModel.position.sub(center); 
+            
+            // Skalakan model secara dinamis agar pas di layar
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = 12 / maxDim;
+            tShirtModel.scale.set(scale, scale, scale);
 
-/* ════════════════════════════════════════
-   PRESET WARNA
-════════════════════════════════════════ */
-const PRESETS = [
-  '#ffffff','#e8e0d0','#c8b89a','#8b6f47','#2e1b0e',
-  '#ff4d4d','#ff9900','#ffe033','#7c6dfa','#3ecfcf',
-  '#1a1a2e','#0d0d0d',
-];
+            // Ekstrak semua material dari model untuk diubah nanti
+            tShirtModel.traverse((child) => {
+                if (child.isMesh) {
+                    tShirtMaterials.push(child.material);
+                }
+            });
 
-/* ════════════════════════════════════════
-   SETUP RENDERER & SCENE
-════════════════════════════════════════ */
-const viewport = document.getElementById('viewport');
-
-const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(viewport.clientWidth, viewport.clientHeight);
-renderer.outputEncoding  = THREE.sRGBEncoding;
-renderer.toneMapping     = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
-renderer.shadowMap.enabled = true;
-viewport.appendChild(renderer.domElement);
-
-const scene  = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(40, viewport.clientWidth / viewport.clientHeight, 0.01, 100);
-camera.position.set(0, 0.6, 2.8);
-
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping   = true;
-controls.dampingFactor   = 0.06;
-controls.minDistance     = 0.8;
-controls.maxDistance     = 5;
-controls.target.set(0, 0.2, 0);
-controls.update();
-
-/* Lighting */
-const hemi = new THREE.HemisphereLight(0xddeeff, 0x221122, 0.8);
-scene.add(hemi);
-
-const key = new THREE.DirectionalLight(0xffffff, 1.4);
-key.position.set(2, 4, 3);
-key.castShadow = true;
-scene.add(key);
-
-const fill = new THREE.DirectionalLight(0x9988ff, 0.5);
-fill.position.set(-3, 2, -2);
-scene.add(fill);
-
-const rim = new THREE.DirectionalLight(0xffaacc, 0.3);
-rim.position.set(0, -2, -3);
-scene.add(rim);
-
-/* ════════════════════════════════════════
-   STATE
-════════════════════════════════════════ */
-let bajuModel   = null;
-let origMaps    = new Map();   // simpan texture asli tiap mesh
-
-/* ════════════════════════════════════════
-   LOAD MODEL GLB
-   Nama file harus PERSIS sama dengan yang
-   ada di folder GitHub kamu.
-════════════════════════════════════════ */
-const gltfLoader = new GLTFLoader();
-
-gltfLoader.load(
-  'oversized_t-shirt__1_.glb',   /* ← nama file .glb kamu */
-
-  (gltf) => {
-    /* ── SUCCESS ── */
-    bajuModel = gltf.scene;
-    scene.add(bajuModel);
-
-    /* Auto-center & scale agar baju pas di layar */
-    const box    = new THREE.Box3().setFromObject(bajuModel);
-    const size   = box.getSize(new THREE.Vector3()).length();
-    const center = box.getCenter(new THREE.Vector3());
-    bajuModel.position.sub(center);
-    bajuModel.scale.setScalar(1.8 / size);
-
-    /* Simpan texture asli untuk reset */
-    bajuModel.traverse(child => {
-      if (!child.isMesh) return;
-      /* Pastikan material bisa menerima map */
-      if (Array.isArray(child.material)) {
-        child.material.forEach(m => {
-          origMaps.set(m.uuid, m.map || null);
-          m.needsUpdate = true;
+            scene.add(tShirtModel);
+        }, undefined, function(error) {
+            console.error('Error memuat model:', error);
         });
-      } else {
-        origMaps.set(child.material.uuid, child.material.map || null);
-        child.material.needsUpdate = true;
-      }
-    });
 
-    document.getElementById('loading').classList.add('gone');
-    toast('✓ Model berhasil dimuat', 'ok');
-  },
+        // 5. Logika Upload Gambar & Mapping Tekstur 2D ke 3D
+        const uploadInput = document.getElementById('design-upload');
+        const textureLoader = new THREE.TextureLoader();
 
-  /* Progress */
-  (xhr) => {
-    if (xhr.total) {
-      const pct = Math.round((xhr.loaded / xhr.total) * 100);
-      document.querySelector('#loading p').textContent = `Memuat model... ${pct}%`;
-    }
-  },
+        uploadInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file || tShirtMaterials.length === 0) return;
 
-  /* Error */
-  (err) => {
-    const el = document.getElementById('loading');
-    el.classList.add('error');
-    el.querySelector('p').textContent = '⚠️ File .glb tidak ditemukan';
-    el.querySelector('small').textContent =
-      'Pastikan "oversized_t-shirt__1_.glb" ada satu folder dengan index.html di GitHub';
-    console.error(err);
-  }
-);
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageSrc = e.target.result;
+                
+                // Muat gambar sebagai tekstur
+                textureLoader.load(imageSrc, function(texture) {
+                    texture.colorSpace = THREE.SRGBColorSpace;
+                    texture.flipY = false; // Model GLTF memerlukan flipY false agar gambar tidak terbalik
+                    
+                    // Terapkan tekstur baru ke semua material baju
+                    tShirtMaterials.forEach(mat => {
+                        mat.map = texture;
+                        mat.needsUpdate = true;
+                    });
+                });
+            };
+            reader.readAsDataURL(file);
+        });
 
-/* ════════════════════════════════════════
-   ① TERAPKAN TEXTURE (dari upload lokal)
-   Letakkan di LUAR init() — level root
-════════════════════════════════════════ */
-function applyTexture(dataUrl) {
-  if (!bajuModel) { toast('Model belum siap', 'err'); return; }
+        // 6. Handle Resize Layar
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
 
-  const texLoader = new THREE.TextureLoader();
-  texLoader.load(dataUrl, (texture) => {
+        // 7. Loop Animasi Utama
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); 
+            
+            // Rotasi model baju jika sudah dimuat
+            if (tShirtModel) {
+                tShirtModel.rotation.y += 0.002;
+            }
+            
+            renderer.render(scene, camera);
+        }
 
-    texture.flipY    = false;            /* ★ WAJIB untuk GLTF — cegah gambar terbalik */
-    texture.encoding = THREE.sRGBEncoding;
-    texture.wrapS    = THREE.RepeatWrapping;
-    texture.wrapT    = THREE.RepeatWrapping;
-
-    /* traverse: cari setiap Mesh dan terapkan map */
-    bajuModel.traverse(child => {
-      if (!child.isMesh) return;
-
-      const applyToMat = (mat) => {
-        mat.map         = texture;
-        mat.needsUpdate = true;   /* ★ WAJIB agar Three.js re-upload ke GPU */
-      };
-
-      if (Array.isArray(child.material)) child.material.forEach(applyToMat);
-      else applyToMat(child.material);
-    });
-
-    toast('✓ Desain diterapkan ke baju', 'ok');
-  });
-}
-
-/* ════════════════════════════════════════
-   ② TERAPKAN WARNA KAIN
-   Letakkan di LUAR init() — level root
-════════════════════════════════════════ */
-function applyColor(hex) {
-  if (!bajuModel) { toast('Model belum siap', 'err'); return; }
-  const color = new THREE.Color(hex);
-
-  bajuModel.traverse(child => {
-    if (!child.isMesh) return;
-
-    const setColor = (mat) => {
-      mat.color.set(color);
-      mat.needsUpdate = true;
-    };
-
-    if (Array.isArray(child.material)) child.material.forEach(setColor);
-    else setColor(child.material);
-  });
-}
-
-/* ════════════════════════════════════════
-   ③ RESET
-════════════════════════════════════════ */
-function resetAll() {
-  if (!bajuModel) return;
-
-  bajuModel.traverse(child => {
-    if (!child.isMesh) return;
-
-    const resetMat = (mat) => {
-      mat.map   = origMaps.get(mat.uuid) || null;
-      mat.color.set(0xffffff);
-      mat.needsUpdate = true;
-    };
-
-    if (Array.isArray(child.material)) child.material.forEach(resetMat);
-    else resetMat(child.material);
-  });
-
-  /* Reset UI */
-  document.getElementById('pilihWarna').value = '#ffffff';
-  syncColorUI('#ffffff');
-  document.getElementById('previewBox').style.display  = 'none';
-  document.getElementById('uploadDesain').value = '';
-  document.querySelectorAll('.sw').forEach(s => s.classList.remove('active'));
-
-  toast('↺ Reset ke default', 'ok');
-}
-
-/* ════════════════════════════════════════
-   BUILD PRESET SWATCHES
-════════════════════════════════════════ */
-const swatchGrid = document.getElementById('swatchGrid');
-PRESETS.forEach(hex => {
-  const btn = document.createElement('button');
-  btn.className = 'sw';
-  btn.style.background = hex;
-  btn.title = hex;
-  btn.onclick = () => {
-    document.querySelectorAll('.sw').forEach(s => s.classList.remove('active'));
-    btn.classList.add('active');
-    applyColor(hex);
-    document.getElementById('pilihWarna').value = hex;
-    syncColorUI(hex);
-  };
-  swatchGrid.appendChild(btn);
-});
-
-/* ════════════════════════════════════════
-   HELPER: Sync UI warna
-════════════════════════════════════════ */
-function syncColorUI(hex) {
-  document.getElementById('clrDot').style.background = hex;
-  document.getElementById('clrHex').textContent = hex.toUpperCase();
-}
-
-/* ════════════════════════════════════════
-   EVENT LISTENERS
-   Semua di LUAR init() — langsung di root
-════════════════════════════════════════ */
-
-/* (A) Upload gambar — FileReader baca lokal tanpa server */
-document.getElementById('uploadDesain').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    const dataUrl = ev.target.result;   /* base64 data URL */
-
-    /* Tampilkan preview di panel */
-    document.getElementById('previewImg').src = dataUrl;
-    document.getElementById('previewBox').style.display = 'block';
-
-    /* Terapkan ke model */
-    applyTexture(dataUrl);
-  };
-  reader.readAsDataURL(file);   /* ★ FileReader: baca file lokal */
-});
-
-/* Drag-over visual feedback */
-const zone = document.getElementById('uploadZone');
-zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag'); });
-zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
-zone.addEventListener('drop', (e) => {
-  e.preventDefault();
-  zone.classList.remove('drag');
-  const file = e.dataTransfer.files[0];
-  if (file && file.type.startsWith('image/')) {
-    document.getElementById('uploadDesain').files = e.dataTransfer.files;
-    document.getElementById('uploadDesain').dispatchEvent(new Event('change'));
-  }
-});
-
-/* (B) Hapus desain */
-document.getElementById('hapusDesain').addEventListener('click', () => {
-  if (!bajuModel) return;
-  bajuModel.traverse(child => {
-    if (!child.isMesh) return;
-    const clear = m => { m.map = null; m.needsUpdate = true; };
-    if (Array.isArray(child.material)) child.material.forEach(clear);
-    else clear(child.material);
-  });
-  document.getElementById('previewBox').style.display = 'none';
-  document.getElementById('uploadDesain').value = '';
-  toast('Desain dihapus', '');
-});
-
-/* (C) Color picker kustom */
-document.getElementById('pilihWarna').addEventListener('input', (e) => {
-  const hex = e.target.value;
-  syncColorUI(hex);
-  applyColor(hex);
-  document.querySelectorAll('.sw').forEach(s => s.classList.remove('active'));
-});
-
-/* (D) Reset */
-document.getElementById('resetBtn').addEventListener('click', resetAll);
-
-/* ════════════════════════════════════════
-   RENDER LOOP
-════════════════════════════════════════ */
-(function animate() {
-  requestAnimationFrame(animate);
-  controls.update();
-  renderer.render(scene, camera);
-})();
-
-/* Responsive */
-window.addEventListener('resize', () => {
-  const w = viewport.clientWidth, h = viewport.clientHeight;
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
-  renderer.setSize(w, h);
-});
-
-/* ════════════════════════════════════════
-   TOAST HELPER
-════════════════════════════════════════ */
-let _t;
-function toast(msg, type = '') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = `show ${type}`.trim();
-  clearTimeout(_t);
-  _t = setTimeout(() => el.className = '', 3000);
-}
-
-</script>
+        // Mulai animasi
+        animate();
+    </script>
 </body>
 </html>
