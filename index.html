@@ -1,450 +1,260 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Baju3D Customizer</title>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet"/>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Baju 3D Customizer</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-    :root {
-      --ink:     #0a0a0b;
-      --surface: #111114;
-      --card:    #18181d;
-      --line:    #2c2c35;
-      --lime:    #c6f135;
-      --orange:  #ff5c35;
-      --text:    #e8e8ec;
-      --muted:   #55555f;
-      --radius:  10px;
-    }
+:root{
+  --bg:#080810;
+  --panel:#0f0f1a;
+  --card:#171726;
+  --border:#252538;
+  --accent:#7c6dfa;
+  --accent2:#fa6d9f;
+  --glow:rgba(124,109,250,0.18);
+  --text:#eeeef5;
+  --muted:#5a5a78;
+  --radius:12px;
+}
 
-    html, body {
-      height: 100%;
-      background: var(--ink);
-      color: var(--text);
-      font-family: 'Space Grotesk', sans-serif;
-      overflow: hidden;
-    }
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif}
 
-    /* ── LAYOUT ── */
-    .app {
-      display: grid;
-      grid-template-columns: 1fr 300px;
-      grid-template-rows: 56px 1fr;
-      height: 100vh;
-    }
+/* ── APP GRID ── */
+.app{display:grid;grid-template-columns:1fr 290px;height:100vh}
 
-    /* ── TOP BAR ── */
-    .topbar {
-      grid-column: 1 / -1;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 24px;
-      border-bottom: 1px solid var(--line);
-      background: var(--surface);
-    }
-    .logo {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 26px;
-      letter-spacing: 0.06em;
-      color: var(--text);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .logo span { color: var(--lime); }
-    .badge {
-      background: var(--line);
-      color: var(--muted);
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 3px 8px;
-      border-radius: 4px;
-    }
-    .topbar-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .pill {
-      background: rgba(198,241,53,0.08);
-      border: 1px solid rgba(198,241,53,0.2);
-      color: var(--lime);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      padding: 5px 12px;
-      border-radius: 20px;
-    }
+/* ── CANVAS ── */
+#viewport{
+  position:relative;
+  background:radial-gradient(ellipse 80% 60% at 50% 30%,#12122a 0%,#080810 100%);
+}
+#viewport canvas{display:block;width:100%!important;height:100%!important}
 
-    /* ── VIEWER ── */
-    .viewer-wrap {
-      position: relative;
-      background: #0d0d10;
-    }
-    #sketchfab-iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      display: block;
-    }
+/* Grid lines bg effect */
+#viewport::before{
+  content:'';position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(124,109,250,0.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(124,109,250,0.04) 1px,transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;z-index:0;
+}
 
-    /* Loading overlay */
-    #overlay {
-      position: absolute;
-      inset: 0;
-      background: #0d0d10;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-      z-index: 5;
-      transition: opacity 0.6s ease;
-    }
-    #overlay.fade { opacity: 0; pointer-events: none; }
+/* Loading */
+#loading{
+  position:absolute;inset:0;z-index:10;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  background:var(--bg);transition:opacity .5s ease;
+}
+#loading.gone{opacity:0;pointer-events:none}
 
-    .loader-ring {
-      width: 48px; height: 48px;
-      border: 3px solid var(--line);
-      border-top-color: var(--lime);
-      border-radius: 50%;
-      animation: spin 0.9s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    #overlay p { font-size: 13px; color: var(--muted); letter-spacing: 0.05em; }
+.ring{
+  width:52px;height:52px;border-radius:50%;
+  border:3px solid var(--border);
+  border-top-color:var(--accent);
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading p{font-size:13px;color:var(--muted);letter-spacing:.06em}
+#loading small{font-size:11px;color:var(--border)}
 
-    /* ── SIDE PANEL ── */
-    .panel {
-      background: var(--surface);
-      border-left: 1px solid var(--line);
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-    }
-    .panel::-webkit-scrollbar { width: 3px; }
-    .panel::-webkit-scrollbar-thumb { background: var(--line); }
+/* Error state inside loading */
+#loading.error .ring{display:none}
+#loading.error p{color:#fa6d6d}
 
-    .panel-section {
-      padding: 20px;
-      border-bottom: 1px solid var(--line);
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
+/* Hint */
+.hint{
+  position:absolute;bottom:20px;left:50%;transform:translateX(-50%);
+  font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;
+  pointer-events:none;z-index:1;
+}
 
-    .section-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .section-num {
-      width: 20px; height: 20px;
-      background: var(--line);
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 700;
-      color: var(--lime);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .section-title h3 {
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
+/* ── SIDE PANEL ── */
+.panel{
+  background:var(--panel);
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;
+  overflow-y:auto;overflow-x:hidden;
+}
+.panel::-webkit-scrollbar{width:3px}
+.panel::-webkit-scrollbar-thumb{background:var(--border)}
 
-    /* Color palette grid */
-    .palette-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 6px;
-    }
-    .swatch {
-      width: 100%;
-      aspect-ratio: 1;
-      border-radius: 6px;
-      cursor: pointer;
-      border: 2px solid transparent;
-      transition: transform 0.15s, border-color 0.15s;
-    }
-    .swatch:hover { transform: scale(1.1); }
-    .swatch.active { border-color: var(--lime); }
+/* Panel header */
+.panel-head{
+  padding:22px 20px 18px;
+  border-bottom:1px solid var(--border);
+  display:flex;flex-direction:column;gap:4px;
+}
+.panel-head h1{
+  font-family:'Rajdhani',sans-serif;
+  font-size:28px;font-weight:700;letter-spacing:.02em;
+  background:linear-gradient(135deg,#a89dff,#fa6d9f);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.panel-head p{font-size:11px;color:var(--muted)}
 
-    /* Custom color row */
-    .custom-color-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 8px 12px;
-      cursor: pointer;
-      transition: border-color 0.2s;
-    }
-    .custom-color-row:hover { border-color: var(--muted); }
-    .color-dot {
-      width: 26px; height: 26px;
-      border-radius: 6px;
-      border: 1px solid rgba(255,255,255,0.1);
-      flex-shrink: 0;
-      transition: background 0.2s;
-    }
-    .custom-color-row span { font-size: 12px; flex: 1; color: var(--muted); }
-    .custom-color-row code { font-size: 12px; color: var(--text); font-family: monospace; }
-    #pilihWarna { display: none; }
+/* Sections */
+.section{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:12px}
 
-    /* Texture URL input */
-    .url-input-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .url-input-wrap label {
-      font-size: 11px;
-      color: var(--muted);
-      letter-spacing: 0.04em;
-    }
-    .url-row {
-      display: flex;
-      gap: 6px;
-    }
-    .url-input {
-      flex: 1;
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 9px 12px;
-      color: var(--text);
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 12px;
-      outline: none;
-      transition: border-color 0.2s;
-      min-width: 0;
-    }
-    .url-input:focus { border-color: var(--lime); }
-    .url-input::placeholder { color: var(--muted); }
+.sec-label{
+  font-family:'Rajdhani',sans-serif;
+  font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);
+  display:flex;align-items:center;gap:8px;
+}
+.sec-label::before{
+  content:'';width:3px;height:14px;border-radius:2px;
+  background:linear-gradient(180deg,var(--accent),var(--accent2));
+  flex-shrink:0;
+}
 
-    .apply-btn {
-      background: var(--lime);
-      color: var(--ink);
-      border: none;
-      border-radius: var(--radius);
-      padding: 0 14px;
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: opacity 0.2s;
-      white-space: nowrap;
-    }
-    .apply-btn:hover { opacity: 0.85; }
-    .apply-btn:disabled { opacity: 0.3; cursor: default; }
+/* ── UPLOAD GAMBAR ── */
+.upload-zone{
+  position:relative;cursor:pointer;
+  border:1.5px dashed var(--border);border-radius:var(--radius);
+  padding:18px;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  transition:border-color .2s,background .2s;
+  background:transparent;
+}
+.upload-zone:hover,
+.upload-zone.drag{border-color:var(--accent);background:var(--glow)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
 
-    /* Upload button */
-    .upload-label {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: var(--card);
-      border: 1.5px dashed var(--line);
-      border-radius: var(--radius);
-      padding: 12px;
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-    }
-    .upload-label:hover {
-      border-color: var(--lime);
-      background: rgba(198,241,53,0.03);
-    }
-    .upload-label input { display: none; }
-    .upload-icon-box {
-      width: 32px; height: 32px;
-      background: rgba(198,241,53,0.1);
-      border-radius: 7px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 15px;
-      flex-shrink: 0;
-    }
-    .upload-label-text { font-size: 12px; color: var(--muted); line-height: 1.4; }
-    .upload-label-text strong { display: block; color: var(--text); font-weight: 500; }
+.upload-icon{
+  width:42px;height:42px;border-radius:10px;
+  background:rgba(124,109,250,.12);
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+}
+.upload-zone strong{font-size:13px;font-weight:600;color:var(--text)}
+.upload-zone small{font-size:11px;color:var(--muted)}
 
-    /* Preview */
-    #tex-preview {
-      display: none;
-      border-radius: var(--radius);
-      overflow: hidden;
-      position: relative;
-      border: 1px solid var(--line);
-    }
-    #tex-preview img {
-      width: 100%; height: 90px;
-      object-fit: cover; display: block;
-    }
-    #tex-preview .clear {
-      position: absolute; top: 5px; right: 5px;
-      background: rgba(0,0,0,0.75);
-      color: #fff; border: none; border-radius: 5px;
-      padding: 2px 8px; font-size: 11px;
-      cursor: pointer; font-family: 'Space Grotesk', sans-serif;
-    }
-    #tex-preview .clear:hover { background: var(--orange); }
+/* Preview thumbnail */
+.preview-box{
+  display:none;position:relative;border-radius:var(--radius);overflow:hidden;
+  border:1px solid var(--border);
+}
+.preview-box img{width:100%;height:96px;object-fit:cover;display:block}
+.preview-box .del{
+  position:absolute;top:6px;right:6px;
+  background:rgba(0,0,0,.75);border:none;color:#fff;
+  border-radius:6px;padding:3px 9px;font-size:11px;
+  font-family:'Nunito',sans-serif;cursor:pointer;
+  transition:background .2s;
+}
+.preview-box .del:hover{background:rgba(250,109,109,.85)}
 
-    /* Note box */
-    .note {
-      background: rgba(198,241,53,0.05);
-      border: 1px solid rgba(198,241,53,0.15);
-      border-radius: var(--radius);
-      padding: 10px 12px;
-      font-size: 11px;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-    .note b { color: var(--lime); }
+/* ── COLOR SECTION ── */
+/* Preset swatches */
+.swatches{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.sw{
+  aspect-ratio:1;border-radius:7px;cursor:pointer;
+  border:2px solid transparent;transition:transform .15s,border-color .15s;
+}
+.sw:hover{transform:scale(1.12)}
+.sw.active{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
 
-    /* Reset */
-    .reset-btn {
-      margin: 20px;
-      background: transparent;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 11px;
-      color: var(--muted);
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-transform: uppercase;
-    }
-    .reset-btn:hover { border-color: var(--orange); color: var(--orange); }
+/* Custom color picker */
+.color-pick-row{
+  display:flex;align-items:center;gap:10px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:9px 13px;cursor:pointer;
+  transition:border-color .2s;
+}
+.color-pick-row:hover{border-color:var(--accent)}
+.clr-dot{
+  width:28px;height:28px;border-radius:7px;
+  border:1px solid rgba(255,255,255,.08);flex-shrink:0;
+  background:#ffffff;transition:background .2s;
+}
+.color-pick-row span{font-size:12px;color:var(--muted);flex:1}
+.color-pick-row code{font-size:12px;font-family:monospace;color:var(--text)}
+#pilihWarna{display:none}
 
-    /* Toast */
-    #toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%) translateY(60px);
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      padding: 9px 18px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-      transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
-      z-index: 100;
-      white-space: nowrap;
-    }
-    #toast.show { transform: translateX(-50%) translateY(0); }
-    #toast.ok   { border-color: rgba(198,241,53,0.3); color: var(--lime); }
-    #toast.err  { border-color: rgba(255,92,53,0.3);  color: var(--orange); }
-  </style>
+/* ── RESET ── */
+.reset-btn{
+  margin:18px 20px;background:transparent;
+  border:1px solid var(--border);border-radius:var(--radius);
+  padding:11px;color:var(--muted);cursor:pointer;
+  font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;
+  letter-spacing:.08em;text-transform:uppercase;
+  transition:all .2s;
+}
+.reset-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:22px;left:50%;
+  transform:translateX(-50%) translateY(60px);
+  background:var(--card);border:1px solid var(--border);
+  border-radius:20px;padding:9px 18px;
+  font-size:12px;font-weight:600;color:var(--text);
+  box-shadow:0 8px 32px #00000088;
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  z-index:999;white-space:nowrap;pointer-events:none;
+}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast.ok{border-color:rgba(124,109,250,.5);color:#a89dff}
+#toast.err{border-color:rgba(250,109,109,.4);color:#fa8080}
+</style>
 </head>
 <body>
 
 <div class="app">
 
-  <!-- TOP BAR -->
-  <header class="topbar">
-    <div class="logo">Baju<span>3D</span> <span class="badge">Customizer</span></div>
-    <div class="topbar-right">
-      <div class="pill" id="api-status">⏳ Menghubungkan...</div>
+  <!-- ── VIEWPORT ── -->
+  <div id="viewport">
+    <div id="loading">
+      <div class="ring"></div>
+      <p>Memuat model baju...</p>
+      <small>Pastikan file .glb ada di folder yang sama</small>
     </div>
-  </header>
-
-  <!-- VIEWER -->
-  <div class="viewer-wrap">
-    <div id="overlay">
-      <div class="loader-ring"></div>
-      <p>Memuat model dari Sketchfab...</p>
-    </div>
-    <iframe
-      id="sketchfab-iframe"
-      title="Oversized t-shirt"
-      allow="autoplay; fullscreen; xr-spatial-tracking"
-      src="https://sketchfab.com/models/3b6e78d6a1a74370a6e5af6f312d38f7/embed?ui_theme=dark&autospin=0&autostart=1&ui_controls=0&ui_infos=0&ui_watermark=0">
-    </iframe>
+    <span class="hint">🖱 Drag putar · Scroll zoom · Klik kanan geser</span>
   </div>
 
-  <!-- PANEL -->
+  <!-- ── PANEL ── -->
   <aside class="panel">
 
-    <!-- SECTION 1: WARNA -->
-    <div class="panel-section">
-      <div class="section-title">
-        <div class="section-num">1</div>
-        <h3>Warna Kain</h3>
-      </div>
-
-      <div class="palette-grid" id="paletteGrid">
-        <!-- diisi JS -->
-      </div>
-
-      <input type="color" id="pilihWarna" value="#ffffff"/>
-      <div class="custom-color-row" onclick="document.getElementById('pilihWarna').click()">
-        <div class="color-dot" id="colorDot" style="background:#ffffff"></div>
-        <span>Warna kustom</span>
-        <code id="colorHex">#FFFFFF</code>
-        <span>🎨</span>
-      </div>
+    <div class="panel-head">
+      <h1>Baju 3D Studio</h1>
+      <p>Kustomisasi desain &amp; warna secara real-time</p>
     </div>
 
-    <!-- SECTION 2: TEKSTUR VIA URL -->
-    <div class="panel-section">
-      <div class="section-title">
-        <div class="section-num">2</div>
-        <h3>Tekstur via URL</h3>
-      </div>
+    <!-- SECTION 1: UPLOAD GAMBAR DESAIN -->
+    <div class="section">
+      <div class="sec-label">Upload Desain / Motif</div>
 
-      <div class="url-input-wrap">
-        <label>Tempel URL gambar publik (Imgur, dll):</label>
-        <div class="url-row">
-          <input class="url-input" type="url" id="texUrl"
-            placeholder="https://i.imgur.com/..."/>
-          <button class="apply-btn" id="applyUrlBtn">Terapkan</button>
-        </div>
-      </div>
-
-      <div class="note">
-        <b>Tips:</b> Upload gambar ke <b>imgur.com</b> → klik kanan → "Copy image address" → tempel di sini.
-      </div>
-    </div>
-
-    <!-- SECTION 3: TEKSTUR VIA UPLOAD (Lokal) -->
-    <div class="panel-section">
-      <div class="section-title">
-        <div class="section-num">3</div>
-        <h3>Upload Gambar Lokal</h3>
-      </div>
-
-      <label class="upload-label">
-        <input type="file" id="uploadDesain" accept="image/*"/>
-        <div class="upload-icon-box">🖼️</div>
-        <div class="upload-label-text">
-          <strong>Pilih file dari perangkat</strong>
-          PNG, JPG — akan di-encode lokal
-        </div>
+      <!-- ★ input file — di luar init(), level root HTML -->
+      <label class="upload-zone" id="uploadZone">
+        <input type="file" id="uploadDesain" accept="image/png,image/jpeg,image/webp,image/svg+xml"/>
+        <div class="upload-icon">🖼️</div>
+        <strong>Pilih gambar dari perangkat</strong>
+        <small>PNG · JPG · WEBP · SVG</small>
       </label>
 
-      <div id="tex-preview">
-        <img id="preview-img" src="" alt="preview"/>
-        <button class="clear" id="clearTex">✕</button>
+      <div class="preview-box" id="previewBox">
+        <img id="previewImg" src="" alt="preview"/>
+        <button class="del" id="hapusDesain">✕ Hapus</button>
       </div>
+    </div>
 
-      <div class="note">
-        <b>Catatan:</b> Gambar lokal di-encode base64 — hasilnya mungkin tergantung dukungan browser terhadap Sketchfab API.
+    <!-- SECTION 2: WARNA KAIN -->
+    <div class="section">
+      <div class="sec-label">Warna Kain</div>
+
+      <div class="swatches" id="swatchGrid"></div>
+
+      <!-- ★ color input — di luar init(), level root HTML -->
+      <input type="color" id="pilihWarna" value="#ffffff"/>
+      <div class="color-pick-row" onclick="document.getElementById('pilihWarna').click()">
+        <div class="clr-dot" id="clrDot"></div>
+        <span>Warna bebas</span>
+        <code id="clrHex">#FFFFFF</code>
+        <span>🎨</span>
       </div>
     </div>
 
@@ -455,242 +265,336 @@
 
 <div id="toast"></div>
 
-<!-- Sketchfab Viewer API -->
-<script src="https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js"></script>
-<script>
-/* ═══════════════════════════════════════════════
-   KONFIGURASI WARNA PALETTE
-═══════════════════════════════════════════════ */
-const PALETTE = [
-  '#ffffff','#f0ece3','#d4c5a9','#8b7355','#3d2b1f',
-  '#ff5c35','#ff9500','#ffe033','#c6f135','#00c896',
-  '#00aeff','#3a5ccc','#7b3fc4','#e83e8c','#111114',
+<!-- ══════════════════════════════════════════════
+     THREE.JS — semua dari CDN yang SAMA (jsdelivr)
+     PENTING: jangan campur cdnjs + jsdelivr
+════════════════════════════════════════════════ -->
+<script type="module">
+
+/* ── Import semua dari satu sumber ── */
+import * as THREE        from 'https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader }    from 'https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/GLTFLoader.js';
+
+/* ════════════════════════════════════════
+   PRESET WARNA
+════════════════════════════════════════ */
+const PRESETS = [
+  '#ffffff','#e8e0d0','#c8b89a','#8b6f47','#2e1b0e',
+  '#ff4d4d','#ff9900','#ffe033','#7c6dfa','#3ecfcf',
+  '#1a1a2e','#0d0d0d',
 ];
 
-/* ═══════════════════════════════════════════════
+/* ════════════════════════════════════════
+   SETUP RENDERER & SCENE
+════════════════════════════════════════ */
+const viewport = document.getElementById('viewport');
+
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(viewport.clientWidth, viewport.clientHeight);
+renderer.outputEncoding  = THREE.sRGBEncoding;
+renderer.toneMapping     = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+renderer.shadowMap.enabled = true;
+viewport.appendChild(renderer.domElement);
+
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, viewport.clientWidth / viewport.clientHeight, 0.01, 100);
+camera.position.set(0, 0.6, 2.8);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping   = true;
+controls.dampingFactor   = 0.06;
+controls.minDistance     = 0.8;
+controls.maxDistance     = 5;
+controls.target.set(0, 0.2, 0);
+controls.update();
+
+/* Lighting */
+const hemi = new THREE.HemisphereLight(0xddeeff, 0x221122, 0.8);
+scene.add(hemi);
+
+const key = new THREE.DirectionalLight(0xffffff, 1.4);
+key.position.set(2, 4, 3);
+key.castShadow = true;
+scene.add(key);
+
+const fill = new THREE.DirectionalLight(0x9988ff, 0.5);
+fill.position.set(-3, 2, -2);
+scene.add(fill);
+
+const rim = new THREE.DirectionalLight(0xffaacc, 0.3);
+rim.position.set(0, -2, -3);
+scene.add(rim);
+
+/* ════════════════════════════════════════
    STATE
-═══════════════════════════════════════════════ */
-let api          = null;   // Sketchfab API instance
-let materials    = [];     // semua material model
-let currentColor = '#ffffff';
-let currentTexUid = null;  // uid texture aktif di Sketchfab
+════════════════════════════════════════ */
+let bajuModel   = null;
+let origMaps    = new Map();   // simpan texture asli tiap mesh
 
-/* ═══════════════════════════════════════════════
-   INISIALISASI SKETCHFAB VIEWER API
-   — di LUAR init(), langsung di root script
-═══════════════════════════════════════════════ */
-const iframe = document.getElementById('sketchfab-iframe');
-const client = new Sketchfab(iframe);
+/* ════════════════════════════════════════
+   LOAD MODEL GLB
+   Nama file harus PERSIS sama dengan yang
+   ada di folder GitHub kamu.
+════════════════════════════════════════ */
+const gltfLoader = new GLTFLoader();
 
-client.init('3b6e78d6a1a74370a6e5af6f312d38f7', {
-  success(apiInstance) {
-    api = apiInstance;
-    api.start();
+gltfLoader.load(
+  'oversized_t-shirt__1_.glb',   /* ← nama file .glb kamu */
 
-    api.addEventListener('viewerready', () => {
-      // Sembunyikan loading overlay
-      document.getElementById('overlay').classList.add('fade');
-      document.getElementById('api-status').textContent = '✓ Siap';
-      document.getElementById('api-status').style.background = 'rgba(198,241,53,0.12)';
+  (gltf) => {
+    /* ── SUCCESS ── */
+    bajuModel = gltf.scene;
+    scene.add(bajuModel);
 
-      // Ambil semua material
-      api.getMaterialList((err, mats) => {
-        if (err) return;
-        materials = mats;
-        toast('✓ Model siap dikustomisasi', 'ok');
-      });
+    /* Auto-center & scale agar baju pas di layar */
+    const box    = new THREE.Box3().setFromObject(bajuModel);
+    const size   = box.getSize(new THREE.Vector3()).length();
+    const center = box.getCenter(new THREE.Vector3());
+    bajuModel.position.sub(center);
+    bajuModel.scale.setScalar(1.8 / size);
+
+    /* Simpan texture asli untuk reset */
+    bajuModel.traverse(child => {
+      if (!child.isMesh) return;
+      /* Pastikan material bisa menerima map */
+      if (Array.isArray(child.material)) {
+        child.material.forEach(m => {
+          origMaps.set(m.uuid, m.map || null);
+          m.needsUpdate = true;
+        });
+      } else {
+        origMaps.set(child.material.uuid, child.material.map || null);
+        child.material.needsUpdate = true;
+      }
     });
-  },
-  error() {
-    document.getElementById('api-status').textContent = '✗ Gagal';
-    document.getElementById('api-status').style.color = '#ff5c35';
-    toast('✗ Gagal konek ke Sketchfab API', 'err');
-  },
-  ui_theme: 'dark',
-  autostart: 1,
-});
 
-/* ═══════════════════════════════════════════════
-   BUILD PALETTE
-═══════════════════════════════════════════════ */
-const grid = document.getElementById('paletteGrid');
-PALETTE.forEach(hex => {
+    document.getElementById('loading').classList.add('gone');
+    toast('✓ Model berhasil dimuat', 'ok');
+  },
+
+  /* Progress */
+  (xhr) => {
+    if (xhr.total) {
+      const pct = Math.round((xhr.loaded / xhr.total) * 100);
+      document.querySelector('#loading p').textContent = `Memuat model... ${pct}%`;
+    }
+  },
+
+  /* Error */
+  (err) => {
+    const el = document.getElementById('loading');
+    el.classList.add('error');
+    el.querySelector('p').textContent = '⚠️ File .glb tidak ditemukan';
+    el.querySelector('small').textContent =
+      'Pastikan "oversized_t-shirt__1_.glb" ada satu folder dengan index.html di GitHub';
+    console.error(err);
+  }
+);
+
+/* ════════════════════════════════════════
+   ① TERAPKAN TEXTURE (dari upload lokal)
+   Letakkan di LUAR init() — level root
+════════════════════════════════════════ */
+function applyTexture(dataUrl) {
+  if (!bajuModel) { toast('Model belum siap', 'err'); return; }
+
+  const texLoader = new THREE.TextureLoader();
+  texLoader.load(dataUrl, (texture) => {
+
+    texture.flipY    = false;            /* ★ WAJIB untuk GLTF — cegah gambar terbalik */
+    texture.encoding = THREE.sRGBEncoding;
+    texture.wrapS    = THREE.RepeatWrapping;
+    texture.wrapT    = THREE.RepeatWrapping;
+
+    /* traverse: cari setiap Mesh dan terapkan map */
+    bajuModel.traverse(child => {
+      if (!child.isMesh) return;
+
+      const applyToMat = (mat) => {
+        mat.map         = texture;
+        mat.needsUpdate = true;   /* ★ WAJIB agar Three.js re-upload ke GPU */
+      };
+
+      if (Array.isArray(child.material)) child.material.forEach(applyToMat);
+      else applyToMat(child.material);
+    });
+
+    toast('✓ Desain diterapkan ke baju', 'ok');
+  });
+}
+
+/* ════════════════════════════════════════
+   ② TERAPKAN WARNA KAIN
+   Letakkan di LUAR init() — level root
+════════════════════════════════════════ */
+function applyColor(hex) {
+  if (!bajuModel) { toast('Model belum siap', 'err'); return; }
+  const color = new THREE.Color(hex);
+
+  bajuModel.traverse(child => {
+    if (!child.isMesh) return;
+
+    const setColor = (mat) => {
+      mat.color.set(color);
+      mat.needsUpdate = true;
+    };
+
+    if (Array.isArray(child.material)) child.material.forEach(setColor);
+    else setColor(child.material);
+  });
+}
+
+/* ════════════════════════════════════════
+   ③ RESET
+════════════════════════════════════════ */
+function resetAll() {
+  if (!bajuModel) return;
+
+  bajuModel.traverse(child => {
+    if (!child.isMesh) return;
+
+    const resetMat = (mat) => {
+      mat.map   = origMaps.get(mat.uuid) || null;
+      mat.color.set(0xffffff);
+      mat.needsUpdate = true;
+    };
+
+    if (Array.isArray(child.material)) child.material.forEach(resetMat);
+    else resetMat(child.material);
+  });
+
+  /* Reset UI */
+  document.getElementById('pilihWarna').value = '#ffffff';
+  syncColorUI('#ffffff');
+  document.getElementById('previewBox').style.display  = 'none';
+  document.getElementById('uploadDesain').value = '';
+  document.querySelectorAll('.sw').forEach(s => s.classList.remove('active'));
+
+  toast('↺ Reset ke default', 'ok');
+}
+
+/* ════════════════════════════════════════
+   BUILD PRESET SWATCHES
+════════════════════════════════════════ */
+const swatchGrid = document.getElementById('swatchGrid');
+PRESETS.forEach(hex => {
   const btn = document.createElement('button');
-  btn.className = 'swatch';
+  btn.className = 'sw';
   btn.style.background = hex;
   btn.title = hex;
   btn.onclick = () => {
-    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.sw').forEach(s => s.classList.remove('active'));
     btn.classList.add('active');
     applyColor(hex);
-    // sync color picker UI
     document.getElementById('pilihWarna').value = hex;
-    document.getElementById('colorDot').style.background = hex;
-    document.getElementById('colorHex').textContent = hex.toUpperCase();
+    syncColorUI(hex);
   };
-  grid.appendChild(btn);
+  swatchGrid.appendChild(btn);
 });
 
-/* ═══════════════════════════════════════════════
-   ① FUNGSI UBAH WARNA KAIN
-   — di LUAR init()
-═══════════════════════════════════════════════ */
-function applyColor(hexColor) {
-  if (!api || !materials.length) { toast('Model belum siap', 'err'); return; }
-
-  currentColor = hexColor;
-
-  // Konversi hex → RGB 0–1 untuk Sketchfab API
-  const r = parseInt(hexColor.slice(1,3), 16) / 255;
-  const g = parseInt(hexColor.slice(3,5), 16) / 255;
-  const b = parseInt(hexColor.slice(5,7), 16) / 255;
-
-  materials.forEach(mat => {
-    // PBR channel (model modern)
-    if (mat.channels.AlbedoPBR) {
-      mat.channels.AlbedoPBR.color = [r, g, b];
-      mat.channels.AlbedoPBR.texture = null; // lepas texture jika ada
-    }
-    // Non-PBR fallback
-    if (mat.channels.DiffuseColor) {
-      mat.channels.DiffuseColor.color = [r, g, b];
-    }
-    api.setMaterial(mat, () => {});
-  });
-
-  toast(`Warna diterapkan: ${hexColor.toUpperCase()}`, 'ok');
+/* ════════════════════════════════════════
+   HELPER: Sync UI warna
+════════════════════════════════════════ */
+function syncColorUI(hex) {
+  document.getElementById('clrDot').style.background = hex;
+  document.getElementById('clrHex').textContent = hex.toUpperCase();
 }
 
-/* ═══════════════════════════════════════════════
-   ② FUNGSI TERAPKAN TEKSTUR (dari URL)
-   — di LUAR init()
-═══════════════════════════════════════════════ */
-function applyTextureFromUrl(url) {
-  if (!api || !materials.length) { toast('Model belum siap', 'err'); return; }
-  if (!url.startsWith('http')) { toast('URL tidak valid', 'err'); return; }
+/* ════════════════════════════════════════
+   EVENT LISTENERS
+   Semua di LUAR init() — langsung di root
+════════════════════════════════════════ */
 
-  toast('Memuat tekstur...', '');
-
-  // addTexture: Sketchfab load gambar dari URL publik
-  api.addTexture(url, (err, texUid) => {
-    if (err) { toast('✗ Gagal load tekstur — cek URL', 'err'); return; }
-    currentTexUid = texUid;
-
-    // Terapkan ke semua material
-    materials.forEach(mat => {
-      const channel = mat.channels.AlbedoPBR || mat.channels.DiffuseColor;
-      if (!channel) return;
-
-      // assignTexture: channel 0 = Albedo/Diffuse
-      api.assignTexture(mat, 0, { uid: texUid }, (e2) => {
-        if (!e2) api.setMaterial(mat, () => {});
-      });
-    });
-
-    toast('✓ Tekstur berhasil diterapkan', 'ok');
-  });
-}
-
-/* ═══════════════════════════════════════════════
-   ③ FUNGSI TEKSTUR LOKAL (base64 via FileReader)
-   — di LUAR init()
-═══════════════════════════════════════════════ */
-function applyTextureFromFile(file) {
-  if (!file) return;
-  const reader = new FileReader();
-
-  reader.onload = (e) => {
-    const dataUrl = e.target.result;
-
-    // Tampilkan preview
-    document.getElementById('preview-img').src = dataUrl;
-    document.getElementById('tex-preview').style.display = 'block';
-
-    // Sketchfab API menerima data URL sebagai URL di addTexture
-    applyTextureFromUrl(dataUrl);
-  };
-
-  reader.readAsDataURL(file);   // FileReader → base64
-}
-
-/* ═══════════════════════════════════════════════
-   RESET
-═══════════════════════════════════════════════ */
-function resetAll() {
-  if (!api) return;
-  api.getMaterialList((err, freshMats) => {
-    if (err) return;
-    materials = freshMats;
-    toast('✓ Model direset', 'ok');
-  });
-
-  // Reset UI
-  document.getElementById('pilihWarna').value = '#ffffff';
-  document.getElementById('colorDot').style.background = '#ffffff';
-  document.getElementById('colorHex').textContent = '#FFFFFF';
-  document.getElementById('tex-preview').style.display = 'none';
-  document.getElementById('texUrl').value = '';
-  document.getElementById('uploadDesain').value = '';
-  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
-}
-
-/* ═══════════════════════════════════════════════
-   EVENT LISTENERS — semua di luar init()
-═══════════════════════════════════════════════ */
-
-// Color picker kustom
-document.getElementById('pilihWarna').addEventListener('input', (e) => {
-  const hex = e.target.value;
-  document.getElementById('colorDot').style.background = hex;
-  document.getElementById('colorHex').textContent = hex.toUpperCase();
-  applyColor(hex);
-  document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
-});
-
-// Tombol Apply URL
-document.getElementById('applyUrlBtn').addEventListener('click', () => {
-  const url = document.getElementById('texUrl').value.trim();
-  if (url) applyTextureFromUrl(url);
-});
-
-// Enter di input URL
-document.getElementById('texUrl').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') document.getElementById('applyUrlBtn').click();
-});
-
-// Upload file lokal
+/* (A) Upload gambar — FileReader baca lokal tanpa server */
 document.getElementById('uploadDesain').addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if (file) applyTextureFromFile(file);
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const dataUrl = ev.target.result;   /* base64 data URL */
+
+    /* Tampilkan preview di panel */
+    document.getElementById('previewImg').src = dataUrl;
+    document.getElementById('previewBox').style.display = 'block';
+
+    /* Terapkan ke model */
+    applyTexture(dataUrl);
+  };
+  reader.readAsDataURL(file);   /* ★ FileReader: baca file lokal */
 });
 
-// Hapus preview
-document.getElementById('clearTex').addEventListener('click', () => {
-  document.getElementById('tex-preview').style.display = 'none';
-  document.getElementById('uploadDesain').value = '';
-  if (api && materials.length) {
-    materials.forEach(mat => {
-      if (mat.channels.AlbedoPBR) mat.channels.AlbedoPBR.texture = null;
-      api.setMaterial(mat, () => {});
-    });
+/* Drag-over visual feedback */
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  zone.classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    document.getElementById('uploadDesain').files = e.dataTransfer.files;
+    document.getElementById('uploadDesain').dispatchEvent(new Event('change'));
   }
-  toast('Tekstur dihapus', '');
 });
 
-// Reset
+/* (B) Hapus desain */
+document.getElementById('hapusDesain').addEventListener('click', () => {
+  if (!bajuModel) return;
+  bajuModel.traverse(child => {
+    if (!child.isMesh) return;
+    const clear = m => { m.map = null; m.needsUpdate = true; };
+    if (Array.isArray(child.material)) child.material.forEach(clear);
+    else clear(child.material);
+  });
+  document.getElementById('previewBox').style.display = 'none';
+  document.getElementById('uploadDesain').value = '';
+  toast('Desain dihapus', '');
+});
+
+/* (C) Color picker kustom */
+document.getElementById('pilihWarna').addEventListener('input', (e) => {
+  const hex = e.target.value;
+  syncColorUI(hex);
+  applyColor(hex);
+  document.querySelectorAll('.sw').forEach(s => s.classList.remove('active'));
+});
+
+/* (D) Reset */
 document.getElementById('resetBtn').addEventListener('click', resetAll);
 
-/* ═══════════════════════════════════════════════
-   HELPER: Toast notification
-═══════════════════════════════════════════════ */
-let toastTimer;
+/* ════════════════════════════════════════
+   RENDER LOOP
+════════════════════════════════════════ */
+(function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+})();
+
+/* Responsive */
+window.addEventListener('resize', () => {
+  const w = viewport.clientWidth, h = viewport.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+});
+
+/* ════════════════════════════════════════
+   TOAST HELPER
+════════════════════════════════════════ */
+let _t;
 function toast(msg, type = '') {
   const el = document.getElementById('toast');
   el.textContent = msg;
-  el.className = `show ${type}`;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.className = ''; }, 3000);
+  el.className = `show ${type}`.trim();
+  clearTimeout(_t);
+  _t = setTimeout(() => el.className = '', 3000);
 }
+
 </script>
 </body>
 </html>
